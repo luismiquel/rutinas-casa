@@ -24,7 +24,7 @@
 <body>
 <header>
   <h1>🏠 Rutinas de 30 Min en Casa</h1>
-  <p>Con temporizador interactivo y sonido</p>
+  <p>Con temporizador en todos los ejercicios</p>
 </header>
 <main>
   <label for="nivel">Nivel:</label>
@@ -173,34 +173,23 @@ document.getElementById("mostrar").addEventListener("click", () => {
 
   cont.innerHTML = `<h2>Rutina ${nivel} - ${objetivo}</h2>` +
     lista.map(ej => {
-      if (ej.tiempo === "reps") {
-        return `
-          <div class="ejercicio">
-            <div class="icono">${ej.icon}</div>
-            <strong>${ej.nombre}</strong>
-            <span class="desc">${ej.desc}</span><br>
-            <em>Realizar por repeticiones indicadas</em>
+      let tiempoDefault = (ej.tiempo === "reps") ? 40 : ej.tiempo;
+      return `
+        <div class="ejercicio">
+          <div class="icono">${ej.icon}</div>
+          <strong>${ej.nombre}</strong>
+          <span class="desc">${ej.desc}</span>
+          <div class="timer">
+            <input type="number" value="${tiempoDefault}" min="5" max="600" style="width:60px;text-align:center;">s
+            <button>Iniciar</button>
+            <span class="time-display"></span>
           </div>
-        `;
-      } else {
-        return `
-          <div class="ejercicio">
-            <div class="icono">${ej.icon}</div>
-            <strong>${ej.nombre}</strong>
-            <span class="desc">${ej.desc}</span>
-            <div class="timer">
-              <input type="number" value="${ej.tiempo}" min="5" max="600" style="width:60px;text-align:center;">s
-              <button>Iniciar</button>
-              <span class="time-display"></span>
-            </div>
-          </div>
-        `;
-      }
+        </div>
+      `;
     }).join("");
 
   cont.querySelectorAll(".ejercicio").forEach(ejDiv => {
     const btn = ejDiv.querySelector("button");
-    if (!btn) return;
     const input = ejDiv.querySelector("input");
     const display = ejDiv.querySelector(".time-display");
     btn.onclick = () => {
