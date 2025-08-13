@@ -4,15 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Entrenador en Casa</title>
-<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#3b82f6">
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js');
-  });
-}
-</script>
 <style>
 body {font-family: 'Segoe UI', sans-serif; margin:0; background:#0f172a; color:#f8fafc; transition: background 0.5s;}
 header {background:linear-gradient(90deg, #06b6d4, #3b82f6); padding:1rem; text-align:center;}
@@ -37,7 +29,7 @@ button:hover {background:#2563eb;}
 </head>
 <body>
 <header>
-<h1>🏋️‍♂️ Entrenador en Casa</h1>
+<h1>Entrenador en Casa</h1>
 <p>Rutinas de 30 minutos sin equipo</p>
 </header>
 <main id="setup">
@@ -66,6 +58,34 @@ button:hover {background:#2563eb;}
 <button id="pauseBtn" onclick="pausarReanudar()">Pausar</button>
 </div>
 <script>
+const manifestData = {
+  name: "Entrenador en Casa",
+  short_name: "Entrenador",
+  start_url: ".",
+  display: "standalone",
+  background_color: "#0f172a",
+  theme_color: "#3b82f6",
+  description: "Rutinas de ejercicios en casa sin equipo, con modos manual y automático.",
+  icons: []
+};
+const blob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
+const manifestURL = URL.createObjectURL(blob);
+const manifestLink = document.createElement('link');
+manifestLink.rel = 'manifest';
+manifestLink.href = manifestURL;
+document.head.appendChild(manifestLink);
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register(URL.createObjectURL(new Blob([`
+    self.addEventListener("install", e=>{
+      e.waitUntil(caches.open("entrenador-cache-v1").then(c=>c.addAll(["./"])));
+    });
+    self.addEventListener("fetch", e=>{
+      e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));
+    });
+  `], {type: 'application/javascript'})));
+}
+
 const beepShort = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 const beepLong = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 let pausado = false, intervalo, indiceActual = 0, tiempoTotal = 0;
@@ -240,6 +260,68 @@ const rutinas = {
       {nombre:"Plancha", desc:"Mantén firme el core", tiempo:20},
       {nombre:"Caminar suave", desc:"Baja pulsaciones", tiempo:120},
       {nombre:"Estiramientos", desc:"Estira todo el cuerpo", tiempo:180}
+    ]
+  },
+  intermedio: {
+    masa: [
+      {nombre:"Calentamiento dinámico", desc:"Rotaciones articulares y movilidad general", tiempo:180},
+      {nombre:"Zancadas", desc:"Alterna piernas bajando rodillas al suelo", tiempo:"reps"},
+      {nombre:"Flexiones normales", desc:"Manos al ancho de hombros", tiempo:"reps"},
+      {nombre:"Fondos en silla", desc:"Baja y sube controlando", tiempo:"reps"},
+      {nombre:"Plancha", desc:"Core firme", tiempo:40},
+      {nombre:"Burpees", desc:"Flexión + salto", tiempo:"reps"},
+      {nombre:"Caminar suave", desc:"Recupera pulsaciones", tiempo:120},
+      {nombre:"Estiramientos", desc:"Brazos, piernas y espalda", tiempo:180}
+    ],
+    tonificar: [
+      {nombre:"Skipping alto", desc:"Rodillas al pecho", tiempo:60},
+      {nombre:"Sentadillas", desc:"Baja y sube controlado", tiempo:"reps"},
+      {nombre:"Flexiones tríceps", desc:"Codos pegados al cuerpo", tiempo:"reps"},
+      {nombre:"Plancha lateral", desc:"Mantén alineado", tiempo:30},
+      {nombre:"Mountain climbers", desc:"Rápidos", tiempo:40},
+      {nombre:"Saltos laterales", desc:"Agilidad", tiempo:30},
+      {nombre:"Caminar suave", desc:"Recupera", tiempo:120},
+      {nombre:"Estiramientos", desc:"Finaliza relajado", tiempo:180}
+    ],
+    perder: [
+      {nombre:"Jumping jacks", desc:"Saltos", tiempo:60},
+      {nombre:"Sprints en el sitio", desc:"Alta intensidad", tiempo:30},
+      {nombre:"Burpees", desc:"Potentes", tiempo:"reps"},
+      {nombre:"Sentadillas con salto", desc:"Explosivas", tiempo:"reps"},
+      {nombre:"Mountain climbers", desc:"Explosivos", tiempo:40},
+      {nombre:"Saltos laterales", desc:"Agilidad", tiempo:30},
+      {nombre:"Caminar suave", desc:"Recupera", tiempo:60},
+      {nombre:"Estiramientos", desc:"Finaliza relajado", tiempo:180}
+    ]
+  },
+  avanzado: {
+    masa: [
+      {nombre:"Calentamiento intenso", desc:"Movilidad y activación muscular", tiempo:180},
+      {nombre:"Zancadas con salto", desc:"Explosivas alternando", tiempo:"reps"},
+      {nombre:"Flexiones diamante", desc:"Manos juntas formando triángulo", tiempo:"reps"},
+      {nombre:"Burpees con flexión", desc:"Completo", tiempo:"reps"},
+      {nombre:"Plancha con toques de hombro", desc:"Core firme", tiempo:40},
+      {nombre:"Sentadillas pistol asistidas", desc:"Una pierna", tiempo:"reps"},
+      {nombre:"Caminar suave", desc:"Recupera", tiempo:60},
+      {nombre:"Estiramientos", desc:"Relaja todo", tiempo:180}
+    ],
+    tonificar: [
+      {nombre:"Skipping alto", desc:"Rodillas al pecho", tiempo:60},
+      {nombre:"Sentadillas", desc:"Control y fuerza", tiempo:"reps"},
+      {nombre:"Flexiones con palmada", desc:"Explosivas", tiempo:"reps"},
+      {nombre:"Plancha lateral con elevación", desc:"Dificultad extra", tiempo:30},
+      {nombre:"Mountain climbers", desc:"Rápidos", tiempo:40},
+      {nombre:"Saltos laterales", desc:"Agilidad", tiempo:30},
+      {nombre:"Caminar suave", desc:"Recupera", tiempo:60},
+      {nombre:"Estiramientos", desc:"Finaliza relajado", tiempo:180}
+    ],
+    perder: [
+      {nombre:"Jump squats", desc:"Saltos verticales", tiempo:"reps"},
+      {nombre:"Mountain climbers", desc:"Explosivos", tiempo:40},
+      {nombre:"Saltos laterales", desc:"Agilidad", tiempo:30},
+      {nombre:"Plancha", desc:"Mantén firme", tiempo:40},
+      {nombre:"Caminar suave", desc:"Recupera", tiempo:60},
+      {nombre:"Estiramientos", desc:"Finaliza relajado", tiempo:180}
     ]
   }
 };
