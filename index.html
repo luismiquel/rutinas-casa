@@ -4,17 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Entrenador en Casa</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#3b82f6">
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(() => console.log('SW registrado'))
-      .catch(err => console.error('Error SW:', err));
-  });
-}
-</script>
 <style>
 body {font-family: 'Segoe UI', sans-serif; margin:0; background:#0f172a; color:#f8fafc; transition: background 0.5s;}
 header {background:linear-gradient(90deg, #06b6d4, #3b82f6); padding:1rem; text-align:center;}
@@ -39,7 +28,7 @@ button:hover {background:#2563eb;}
 </head>
 <body>
 <header>
-<h1>Entrenador en Casa</h1>
+<h1>🏋️‍♂️ Entrenador en Casa</h1>
 <p>Rutinas de 30 minutos sin equipo</p>
 </header>
 <main id="setup">
@@ -67,231 +56,262 @@ button:hover {background:#2563eb;}
 <div id="nextExercise"></div>
 <button id="pauseBtn" onclick="pausarReanudar()">Pausar</button>
 </div>
+
 <script>
-function playBeep(freq=1000, dur=200){
-  const ctx=new AudioContext();
-  const osc=ctx.createOscillator();
-  const gain=ctx.createGain();
-  osc.connect(gain); gain.connect(ctx.destination);
-  osc.type="sine"; osc.frequency.value=freq;
-  osc.start(); gain.gain.setValueAtTime(1, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+dur/1000);
-  osc.stop(ctx.currentTime+dur/1000);
+// Generar beep corto y largo sin depender de internet
+function generarBeep(frecuencia, duracion) {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  return function() {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = frecuencia;
+    osc.type = "sine";
+    osc.start();
+    gain.gain.setValueAtTime(1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duracion/1000);
+    osc.stop(ctx.currentTime + duracion/1000);
+  }
 }
+const beepShort = generarBeep(1000, 150);
+const beepLong = generarBeep(500, 400);
 
-let pausado=false, intervalo, indiceActual=0, tiempoTotal=0;
-let ejerciciosActuales=[]; let descanso=15;
+let pausado = false, intervalo, indiceActual = 0, tiempoTotal = 0;
+let ejerciciosActuales = [];
+let descanso = 15;
 
-function crearTemporizador(segundos, display, btn){
-  let tiempo=segundos;
-  display.textContent=`${tiempo}s`;
-  let intv=setInterval(()=>{
-    if(!pausado){
-      tiempo--; display.textContent=`${tiempo}s`;
-      if(tiempo<=0){
-        clearInterval(intv); playBeep(800,500);
-        display.textContent="¡Completado!";
-        btn.disabled=false; btn.textContent="Reiniciar";
-        btn.onclick=()=>crearTemporizador(segundos, display, btn);
+function crearTemporizador(segundos, display, btn) {
+  let tiempo = segundos;
+  display.textContent = `${tiempo}s`;
+  let intv = setInterval(() => {
+    if (!pausado) {
+      tiempo--;
+      display.textContent = `${tiempo}s`;
+      if (tiempo <= 0) {
+        clearInterval(intv);
+        beepLong();
+        display.textContent = "¡Completado!";
+        btn.disabled = false;
+        btn.textContent = "Reiniciar";
+        btn.onclick = () => crearTemporizador(segundos, display, btn);
       }
     }
-  },1000);
+  }, 1000);
 }
 
-function mostrarRutina(){
-  const nivel=document.getElementById("nivel").value;
-  const objetivo=document.getElementById("objetivo").value;
-  const lista=rutinas[nivel][objetivo];
-  const cont=document.getElementById("resultado");
-  cont.innerHTML=`<h2>Rutina ${nivel} - ${objetivo}</h2>`+
-    lista.map(ej=>{
-      let tiempoDefault=(ej.tiempo==="reps")?40:ej.tiempo;
+function mostrarRutina() {
+  const nivel = document.getElementById("nivel").value;
+  const objetivo = document.getElementById("objetivo").value;
+  const lista = rutinas[nivel][objetivo];
+  const cont = document.getElementById("resultado");
+  cont.innerHTML = `<h2>Rutina ${nivel} - ${objetivo}</h2>` +
+    lista.map(ej => {
+      let tiempoDefault = (ej.tiempo === "reps") ? 40 : ej.tiempo;
       return `
-      <div class="ejercicio">
-        <strong>${ej.nombre}</strong>
-        <div class="desc">${ej.desc}</div>
-        <div class="timer">
-          <input type="number" value="${tiempoDefault}" min="5" max="600" style="width:60px;text-align:center;">s
-          <button>Iniciar</button>
-          <span class="time-display"></span>
+        <div class="ejercicio">
+          <strong>${ej.nombre}</strong>
+          <div class="desc">${ej.desc}</div>
+          <div class="timer">
+            <input type="number" value="${tiempoDefault}" min="5" max="600" style="width:60px;text-align:center;">s
+            <button>Iniciar</button>
+            <span class="time-display"></span>
+          </div>
         </div>
-      </div>`;
+      `;
     }).join("");
-  cont.querySelectorAll(".ejercicio").forEach(ejDiv=>{
-    const btn=ejDiv.querySelector("button");
-    const input=ejDiv.querySelector("input");
-    const display=ejDiv.querySelector(".time-display");
-    btn.onclick=()=>{
-      btn.disabled=true;
+  cont.querySelectorAll(".ejercicio").forEach(ejDiv => {
+    const btn = ejDiv.querySelector("button");
+    const input = ejDiv.querySelector("input");
+    const display = ejDiv.querySelector(".time-display");
+    btn.onclick = () => {
+      btn.disabled = true;
       crearTemporizador(parseInt(input.value), display, btn);
     };
   });
 }
 
-function iniciarAutomatico(){
-  const nivel=document.getElementById("nivel").value;
-  const objetivo=document.getElementById("objetivo").value;
-  ejerciciosActuales=rutinas[nivel][objetivo].map(ej=>({...ej, tiempo:(ej.tiempo==="reps")?40:ej.tiempo}));
-  document.getElementById("setup").style.display="none";
-  document.getElementById("autoMode").style.display="block";
-  indiceActual=0; tiempoTotal=0; ejecutarEjercicio();
+function iniciarAutomatico() {
+  const nivel = document.getElementById("nivel").value;
+  const objetivo = document.getElementById("objetivo").value;
+  ejerciciosActuales = rutinas[nivel][objetivo].map(ej => {
+    return { ...ej, tiempo: (ej.tiempo === "reps") ? 40 : ej.tiempo };
+  });
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("autoMode").style.display = "block";
+  indiceActual = 0;
+  tiempoTotal = 0;
+  ejecutarEjercicio();
 }
 
-function ejecutarEjercicio(){
-  if(indiceActual>=ejerciciosActuales.length){
-    document.body.style.background="#0f172a";
-    document.getElementById("autoMode").innerHTML=`<h1>¡Rutina completada!</h1>
+function ejecutarEjercicio() {
+  if (indiceActual >= ejerciciosActuales.length) {
+    document.body.style.background = "#0f172a";
+    document.getElementById("autoMode").innerHTML = `<h1>¡Rutina completada!</h1>
       <p>Tiempo total: ${Math.round(tiempoTotal/60)} min</p>
       <button onclick="location.reload()">Reiniciar</button>`;
     return;
   }
-  let ej=ejerciciosActuales[indiceActual];
-  document.body.style.background="#2563eb";
-  document.getElementById("estado").textContent="Prepárate";
-  document.getElementById("currentExercise").textContent=ej.nombre;
-  document.getElementById("exerciseDesc").textContent=ej.desc;
-  document.getElementById("nextExercise").textContent=indiceActual+1<ejerciciosActuales.length?
-    `Siguiente: ${ejerciciosActuales[indiceActual+1].nombre}`:"Último ejercicio";
-  let prep=3;
-  document.getElementById("timerDisplay").textContent=prep;
-  intervalo=setInterval(()=>{
-    if(!pausado){
-      playBeep(1200,150); prep--;
-      document.getElementById("timerDisplay").textContent=prep;
-      if(prep<=0){clearInterval(intervalo); iniciarCuentaAtras(ej.tiempo);}
+  let ej = ejerciciosActuales[indiceActual];
+  document.body.style.background = "#2563eb";
+  document.getElementById("estado").textContent = "Prepárate";
+  document.getElementById("currentExercise").textContent = ej.nombre;
+  document.getElementById("exerciseDesc").textContent = ej.desc;
+  document.getElementById("nextExercise").textContent = indiceActual+1 < ejerciciosActuales.length 
+    ? `Siguiente: ${ejerciciosActuales[indiceActual+1].nombre}` 
+    : "Último ejercicio";
+  let prep = 3;
+  document.getElementById("timerDisplay").textContent = prep;
+  intervalo = setInterval(() => {
+    if (!pausado) {
+      beepShort();
+      prep--;
+      document.getElementById("timerDisplay").textContent = prep;
+      if (prep <= 0) {
+        clearInterval(intervalo);
+        iniciarCuentaAtras(ej.tiempo);
+      }
     }
-  },1000);
+  }, 1000);
 }
 
-function iniciarCuentaAtras(tiempo){
-  document.body.style.background="#16a34a";
-  document.getElementById("estado").textContent="Ejercicio";
-  let restante=tiempo;
-  document.getElementById("timerDisplay").textContent=restante;
-  intervalo=setInterval(()=>{
-    if(!pausado){
-      restante--; tiempoTotal++;
-      document.getElementById("timerDisplay").textContent=restante;
-      if(restante<=0){
-        clearInterval(intervalo); playBeep(500,500);
+function iniciarCuentaAtras(tiempo) {
+  document.body.style.background = "#16a34a";
+  document.getElementById("estado").textContent = "Ejercicio";
+  let restante = tiempo;
+  document.getElementById("timerDisplay").textContent = restante;
+  intervalo = setInterval(() => {
+    if (!pausado) {
+      restante--;
+      tiempoTotal++;
+      document.getElementById("timerDisplay").textContent = restante;
+      if (restante <= 0) {
+        clearInterval(intervalo);
+        beepLong();
         iniciarDescanso();
       }
     }
-  },1000);
+  }, 1000);
 }
 
-function iniciarDescanso(){
-  document.body.style.background="#dc2626";
-  document.getElementById("estado").textContent="Descanso";
-  let restante=descanso;
-  document.getElementById("timerDisplay").textContent=restante;
-  intervalo=setInterval(()=>{
-    if(!pausado){
-      restante--; tiempoTotal++;
-      document.getElementById("timerDisplay").textContent=restante;
-      if(restante<=0){clearInterval(intervalo); indiceActual++; ejecutarEjercicio();}
+function iniciarDescanso() {
+  document.body.style.background = "#dc2626";
+  document.getElementById("estado").textContent = "Descanso";
+  let restante = descanso;
+  document.getElementById("timerDisplay").textContent = restante;
+  intervalo = setInterval(() => {
+    if (!pausado) {
+      restante--;
+      tiempoTotal++;
+      document.getElementById("timerDisplay").textContent = restante;
+      if (restante <= 0) {
+        clearInterval(intervalo);
+        indiceActual++;
+        ejecutarEjercicio();
+      }
     }
-  },1000);
+  }, 1000);
 }
 
-function pausarReanudar(){
-  pausado=!pausado;
-  document.getElementById("pauseBtn").textContent=pausado?"Reanudar":"Pausar";
+function pausarReanudar() {
+  pausado = !pausado;
+  document.getElementById("pauseBtn").textContent = pausado ? "Reanudar" : "Pausar";
 }
 
-const rutinas={
-  principiante:{
-    masa:[
-      {nombre:"Movilidad articular",desc:"Giros suaves de cuello, hombros, cadera y rodillas",tiempo:180},
-      {nombre:"Marcha en el sitio",desc:"Levanta rodillas y mueve brazos",tiempo:120},
-      {nombre:"Flexiones inclinadas",desc:"Apoya manos en mesa o pared",tiempo:"reps"},
-      {nombre:"Sentadillas",desc:"Pies abiertos al ancho de hombros",tiempo:"reps"},
-      {nombre:"Fondos en silla",desc:"Manos en silla, baja y sube",tiempo:"reps"},
-      {nombre:"Plancha",desc:"Apoyo de antebrazos, cuerpo recto",tiempo:30},
-      {nombre:"Caminar en el sitio",desc:"Movimientos suaves para bajar pulsaciones",tiempo:120},
-      {nombre:"Estiramientos",desc:"Estira brazos, piernas y espalda",tiempo:180}
+// Rutinas con descripción breve
+const rutinas = {
+  principiante: {
+    masa: [
+      {nombre:"Movilidad articular", desc:"Gira cuello, hombros, cadera y rodillas suavemente", tiempo:180},
+      {nombre:"Marcha en el sitio", desc:"Levanta rodillas y mueve brazos", tiempo:120},
+      {nombre:"Flexiones inclinadas", desc:"Apoya manos en pared o mesa, baja y sube", tiempo:"reps"},
+      {nombre:"Sentadillas", desc:"Pies a ancho de hombros, baja hasta 90° y sube", tiempo:"reps"},
+      {nombre:"Fondos en silla", desc:"Manos en silla, baja y sube controlado", tiempo:"reps"},
+      {nombre:"Plancha", desc:"Antebrazos apoyados, cuerpo recto y abdomen firme", tiempo:30},
+      {nombre:"Caminar en el sitio", desc:"Paso suave para bajar pulsaciones", tiempo:120},
+      {nombre:"Estiramientos", desc:"Estira brazos, piernas y espalda", tiempo:180}
     ],
-    tonificar:[
-      {nombre:"Jumping jacks",desc:"Saltos abriendo y cerrando piernas y brazos",tiempo:120},
-      {nombre:"Trota en el sitio",desc:"Movimientos suaves para activar",tiempo:120},
-      {nombre:"Sentadillas",desc:"Baja controlando y sube",tiempo:"reps"},
-      {nombre:"Flexiones rodillas apoyadas",desc:"Apoya rodillas y manos, baja y sube",tiempo:"reps"},
-      {nombre:"Plancha lateral",desc:"Apoyo lateral, mantener recto",tiempo:20},
-      {nombre:"Mountain climbers",desc:"Rodillas al pecho rápido",tiempo:30},
-      {nombre:"Caminar suave",desc:"Recuperar respiración",tiempo:120},
-      {nombre:"Estiramientos",desc:"Brazos, piernas, cuello",tiempo:180}
+    tonificar: [
+      {nombre:"Jumping jacks", desc:"Salta abriendo y cerrando piernas y brazos", tiempo:120},
+      {nombre:"Trota en el sitio", desc:"Movimiento suave de piernas y brazos", tiempo:120},
+      {nombre:"Sentadillas", desc:"Baja controlado y sube despacio", tiempo:"reps"},
+      {nombre:"Flexiones rodillas apoyadas", desc:"Apoya rodillas, baja y sube", tiempo:"reps"},
+      {nombre:"Plancha lateral", desc:"Apoyo lateral, cuerpo alineado", tiempo:20},
+      {nombre:"Mountain climbers", desc:"Lleva rodillas al pecho rápido", tiempo:30},
+      {nombre:"Caminar suave", desc:"Paso lento para recuperar", tiempo:120},
+      {nombre:"Estiramientos", desc:"Estira cuello, brazos y piernas", tiempo:180}
     ],
-    perder:[
-      {nombre:"Jumping jacks",desc:"Saltos con brazos y piernas",tiempo:120},
-      {nombre:"Trota en el sitio",desc:"Movimientos rápidos",tiempo:120},
-      {nombre:"Burpees",desc:"Salto + flexión",tiempo:"reps"},
-      {nombre:"Sentadillas con salto",desc:"Baja y salta explosivo",tiempo:"reps"},
-      {nombre:"Mountain climbers",desc:"Rodillas al pecho rápido",tiempo:30},
-      {nombre:"Plancha",desc:"Mantén firme el core",tiempo:20},
-      {nombre:"Caminar suave",desc:"Baja pulsaciones",tiempo:120},
-      {nombre:"Estiramientos",desc:"Estira todo el cuerpo",tiempo:180}
+    perder: [
+      {nombre:"Jumping jacks", desc:"Saltos con brazos y piernas", tiempo:120},
+      {nombre:"Trota en el sitio", desc:"Movimientos rápidos", tiempo:120},
+      {nombre:"Burpees", desc:"Salto + flexión", tiempo:"reps"},
+      {nombre:"Sentadillas con salto", desc:"Baja y salta explosivo", tiempo:"reps"},
+      {nombre:"Mountain climbers", desc:"Rodillas al pecho rápido", tiempo:30},
+      {nombre:"Plancha", desc:"Mantén core firme", tiempo:20},
+      {nombre:"Caminar suave", desc:"Baja pulsaciones", tiempo:120},
+      {nombre:"Estiramientos", desc:"Estira todo el cuerpo", tiempo:180}
     ]
   },
-  intermedio:{
-    masa:[
-      {nombre:"Calentamiento dinámico",desc:"Rotaciones articulares y movilidad general",tiempo:180},
-      {nombre:"Zancadas",desc:"Alterna piernas bajando rodillas al suelo",tiempo:"reps"},
-      {nombre:"Flexiones normales",desc:"Manos al ancho de hombros",tiempo:"reps"},
-      {nombre:"Fondos en silla",desc:"Baja y sube controlando",tiempo:"reps"},
-      {nombre:"Plancha",desc:"Core firme",tiempo:40},
-      {nombre:"Burpees",desc:"Flexión + salto",tiempo:"reps"},
-      {nombre:"Caminar suave",desc:"Recupera pulsaciones",tiempo:120},
-      {nombre:"Estiramientos",desc:"Brazos, piernas y espalda",tiempo:180}
+  intermedio: {
+    masa: [
+      {nombre:"Calentamiento dinámico", desc:"Rotaciones articulares y movilidad", tiempo:180},
+      {nombre:"Zancadas", desc:"Alterna piernas bajando rodillas al suelo", tiempo:"reps"},
+      {nombre:"Flexiones normales", desc:"Manos a ancho de hombros, baja y sube", tiempo:"reps"},
+      {nombre:"Fondos en silla", desc:"Baja y sube controlando", tiempo:"reps"},
+      {nombre:"Plancha", desc:"Core firme y espalda recta", tiempo:40},
+      {nombre:"Burpees", desc:"Flexión + salto", tiempo:"reps"},
+      {nombre:"Caminar suave", desc:"Recupera pulsaciones", tiempo:120},
+      {nombre:"Estiramientos", desc:"Brazos, piernas y espalda", tiempo:180}
     ],
-    tonificar:[
-      {nombre:"Skipping alto",desc:"Rodillas al pecho",tiempo:60},
-      {nombre:"Sentadillas",desc:"Baja y sube controlado",tiempo:"reps"},
-      {nombre:"Flexiones tríceps",desc:"Codos pegados al cuerpo",tiempo:"reps"},
-      {nombre:"Plancha lateral",desc:"Mantén alineado",tiempo:30},
-      {nombre:"Mountain climbers",desc:"Rápidos",tiempo:40},
-      {nombre:"Saltos laterales",desc:"Agilidad",tiempo:30},
-      {nombre:"Caminar suave",desc:"Recupera",tiempo:120},
-      {nombre:"Estiramientos",desc:"Finaliza relajado",tiempo:180}
+    tonificar: [
+      {nombre:"Skipping alto", desc:"Rodillas al pecho rápido", tiempo:60},
+      {nombre:"Sentadillas", desc:"Baja y sube controlado", tiempo:"reps"},
+      {nombre:"Flexiones tríceps", desc:"Codos pegados al cuerpo", tiempo:"reps"},
+      {nombre:"Plancha lateral", desc:"Mantén alineado", tiempo:30},
+      {nombre:"Mountain climbers", desc:"Movimiento rápido", tiempo:40},
+      {nombre:"Saltos laterales", desc:"De un lado a otro", tiempo:30},
+      {nombre:"Caminar suave", desc:"Recupera respiración", tiempo:120},
+      {nombre:"Estiramientos", desc:"Relaja músculos", tiempo:180}
     ],
-    perder:[
-      {nombre:"Jumping jacks",desc:"Saltos",tiempo:60},
-      {nombre:"Sprints en el sitio",desc:"Alta intensidad",tiempo:30},
-      {nombre:"Burpees",desc:"Potentes",tiempo:"reps"},
-      {nombre:"Sentadillas con salto",desc:"Explosivas",tiempo:"reps"},
-      {nombre:"Mountain climbers",desc:"Explosivos",tiempo:40},
-      {nombre:"Saltos laterales",desc:"Agilidad",tiempo:30},
-      {nombre:"Caminar suave",desc:"Recupera",tiempo:60},
-      {nombre:"Estiramientos",desc:"Finaliza relajado",tiempo:180}
+    perder: [
+      {nombre:"Jumping jacks", desc:"Saltos", tiempo:60},
+      {nombre:"Sprints en el sitio", desc:"Alta intensidad", tiempo:30},
+      {nombre:"Burpees", desc:"Potentes", tiempo:"reps"},
+      {nombre:"Sentadillas con salto", desc:"Explosivas", tiempo:"reps"},
+      {nombre:"Mountain climbers", desc:"Explosivos", tiempo:40},
+      {nombre:"Saltos laterales", desc:"Agilidad", tiempo:30},
+      {nombre:"Caminar suave", desc:"Recupera", tiempo:60},
+      {nombre:"Estiramientos", desc:"Relaja todo", tiempo:180}
     ]
   },
-  avanzado:{
-    masa:[
-      {nombre:"Calentamiento intenso",desc:"Movilidad y activación muscular",tiempo:180},
-      {nombre:"Zancadas con salto",desc:"Explosivas alternando",tiempo:"reps"},
-      {nombre:"Flexiones diamante",desc:"Manos juntas formando triángulo",tiempo:"reps"},
-      {nombre:"Burpees con flexión",desc:"Completo",tiempo:"reps"},
-      {nombre:"Plancha con toques de hombro",desc:"Core firme",tiempo:40},
-      {nombre:"Sentadillas pistol asistidas",desc:"Una pierna",tiempo:"reps"},
-      {nombre:"Caminar suave",desc:"Recupera",tiempo:60},
-      {nombre:"Estiramientos",desc:"Relaja todo",tiempo:180}
+  avanzado: {
+    masa: [
+      {nombre:"Calentamiento intenso", desc:"Movilidad y activación muscular", tiempo:180},
+      {nombre:"Zancadas con salto", desc:"Explosivas alternando", tiempo:"reps"},
+      {nombre:"Flexiones diamante", desc:"Manos juntas en triángulo", tiempo:"reps"},
+      {nombre:"Burpees con flexión", desc:"Completo", tiempo:"reps"},
+      {nombre:"Plancha con toques de hombro", desc:"Core firme, toca hombros", tiempo:40},
+      {nombre:"Sentadillas pistol asistidas", desc:"Una pierna, con apoyo", tiempo:"reps"},
+      {nombre:"Caminar suave", desc:"Recupera", tiempo:60},
+      {nombre:"Estiramientos", desc:"Relaja todo", tiempo:180}
     ],
-    tonificar:[
-      {nombre:"Skipping alto",desc:"Rodillas al pecho",tiempo:60},
-      {nombre:"Sentadillas",desc:"Control y fuerza",tiempo:"reps"},
-      {nombre:"Flexiones con palmada",desc:"Explosivas",tiempo:"reps"},
-      {nombre:"Plancha lateral con elevación",desc:"Dificultad extra",tiempo:30},
-      {nombre:"Mountain climbers",desc:"Rápidos",tiempo:40},
-      {nombre:"Saltos laterales",desc:"Agilidad",tiempo:30},
-      {nombre:"Caminar suave",desc:"Recupera",tiempo:60},
-      {nombre:"Estiramientos",desc:"Finaliza relajado",tiempo:180}
+    tonificar: [
+      {nombre:"Skipping alto", desc:"Rodillas al pecho", tiempo:60},
+      {nombre:"Sentadillas", desc:"Control y fuerza", tiempo:"reps"},
+      {nombre:"Flexiones con palmada", desc:"Explosivas", tiempo:"reps"},
+      {nombre:"Plancha lateral con elevación", desc:"Dificultad extra", tiempo:30},
+      {nombre:"Mountain climbers", desc:"Rápidos", tiempo:40},
+      {nombre:"Saltos laterales", desc:"Agilidad", tiempo:30},
+      {nombre:"Caminar suave", desc:"Recupera", tiempo:60},
+      {nombre:"Estiramientos", desc:"Finaliza relajado", tiempo:180}
     ],
-    perder:[
-      {nombre:"Jump squats",desc:"Saltos verticales",tiempo:"reps"},
-      {nombre:"Mountain climbers",desc:"Explosivos",tiempo:40},
-      {nombre:"Saltos laterales",desc:"Agilidad",tiempo:30},
-      {nombre:"Plancha",desc:"Mantén firme",tiempo:40},
-      {nombre:"Caminar suave",desc:"Recupera",tiempo:60},
-      {nombre:"Estiramientos",desc:"Finaliza relajado",tiempo:180}
+    perder: [
+      {nombre:"Jump squats", desc:"Saltos verticales", tiempo:"reps"},
+      {nombre:"Mountain climbers", desc:"Explosivos", tiempo:40},
+      {nombre:"Saltos laterales", desc:"Agilidad", tiempo:30},
+      {nombre:"Plancha", desc:"Mantén firme", tiempo:40},
+      {nombre:"Caminar suave", desc:"Recupera", tiempo:60},
+      {nombre:"Estiramientos", desc:"Finaliza relajado", tiempo:180}
     ]
   }
 };
