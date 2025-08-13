@@ -1,10 +1,9 @@
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open("entrenador-cache-v2").then(cache => {
+    caches.open("entrenador-cache-v3").then(cache => {
       return cache.addAll([
-        "./",
-        "./index.html",
-        "./manifest.json"
+        "/index.html",
+        "/manifest.json"
       ]);
     })
   );
@@ -15,7 +14,7 @@ self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
-        keys.filter(k => k !== "entrenador-cache-v2").map(k => caches.delete(k))
+        keys.filter(k => k !== "entrenador-cache-v3").map(k => caches.delete(k))
       );
     })
   );
@@ -26,9 +25,8 @@ self.addEventListener("fetch", event => {
   event.respondWith(
     caches.match(event.request).then(response => {
       return response || fetch(event.request).catch(() => {
-        // Si es un archivo HTML y no hay conexión, devuelve el index.html
-        if (event.request.headers.get("accept").includes("text/html")) {
-          return caches.match("./index.html");
+        if (event.request.headers.get("accept")?.includes("text/html")) {
+          return caches.match("/index.html");
         }
       });
     })
