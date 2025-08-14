@@ -56,27 +56,9 @@ button:hover {background:#2563eb;}
 <div id="nextExercise"></div>
 <button id="pauseBtn" onclick="pausarReanudar()">Pausar</button>
 </div>
-
 <script>
-// Generar beep corto y largo sin depender de internet
-function generarBeep(frecuencia, duracion) {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  return function() {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = frecuencia;
-    osc.type = "sine";
-    osc.start();
-    gain.gain.setValueAtTime(1, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duracion/1000);
-    osc.stop(ctx.currentTime + duracion/1000);
-  }
-}
-const beepShort = generarBeep(1000, 150);
-const beepLong = generarBeep(500, 400);
-
+const beepShort = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+const beepLong = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 let pausado = false, intervalo, indiceActual = 0, tiempoTotal = 0;
 let ejerciciosActuales = [];
 let descanso = 15;
@@ -90,7 +72,7 @@ function crearTemporizador(segundos, display, btn) {
       display.textContent = `${tiempo}s`;
       if (tiempo <= 0) {
         clearInterval(intv);
-        beepLong();
+        beepLong.play();
         display.textContent = "¡Completado!";
         btn.disabled = false;
         btn.textContent = "Reiniciar";
@@ -164,7 +146,7 @@ function ejecutarEjercicio() {
   document.getElementById("timerDisplay").textContent = prep;
   intervalo = setInterval(() => {
     if (!pausado) {
-      beepShort();
+      beepShort.play();
       prep--;
       document.getElementById("timerDisplay").textContent = prep;
       if (prep <= 0) {
@@ -187,7 +169,7 @@ function iniciarCuentaAtras(tiempo) {
       document.getElementById("timerDisplay").textContent = restante;
       if (restante <= 0) {
         clearInterval(intervalo);
-        beepLong();
+        beepLong.play();
         iniciarDescanso();
       }
     }
@@ -218,100 +200,100 @@ function pausarReanudar() {
   document.getElementById("pauseBtn").textContent = pausado ? "Reanudar" : "Pausar";
 }
 
-// Rutinas con descripción breve
+// Rutinas con explicaciones breves y claras
 const rutinas = {
   principiante: {
     masa: [
-      {nombre:"Movilidad articular", desc:"Gira cuello, hombros, cadera y rodillas suavemente", tiempo:180},
-      {nombre:"Marcha en el sitio", desc:"Levanta rodillas y mueve brazos", tiempo:120},
-      {nombre:"Flexiones inclinadas", desc:"Apoya manos en pared o mesa, baja y sube", tiempo:"reps"},
-      {nombre:"Sentadillas", desc:"Pies a ancho de hombros, baja hasta 90° y sube", tiempo:"reps"},
-      {nombre:"Fondos en silla", desc:"Manos en silla, baja y sube controlado", tiempo:"reps"},
-      {nombre:"Plancha", desc:"Antebrazos apoyados, cuerpo recto y abdomen firme", tiempo:30},
-      {nombre:"Caminar en el sitio", desc:"Paso suave para bajar pulsaciones", tiempo:120},
-      {nombre:"Estiramientos", desc:"Estira brazos, piernas y espalda", tiempo:180}
+      {nombre:"Movilidad articular", desc:"De pie, haz giros suaves de cuello, hombros, cadera y rodillas.", tiempo:180},
+      {nombre:"Marcha en el sitio", desc:"Camina levantando rodillas y moviendo brazos.", tiempo:120},
+      {nombre:"Flexiones inclinadas", desc:"Manos en mesa o pared, baja el pecho y sube recto.", tiempo:"reps"},
+      {nombre:"Sentadillas", desc:"Pies abiertos al ancho de hombros, baja la cadera y sube.", tiempo:"reps"},
+      {nombre:"Fondos en silla", desc:"Apoya manos en una silla, baja el cuerpo y sube.", tiempo:"reps"},
+      {nombre:"Plancha", desc:"Antebrazos y puntas de pies apoyados, cuerpo recto.", tiempo:30},
+      {nombre:"Caminar en el sitio", desc:"Marcha suave para recuperar.", tiempo:120},
+      {nombre:"Estiramientos", desc:"Estira brazos, piernas y espalda.", tiempo:180}
     ],
     tonificar: [
-      {nombre:"Jumping jacks", desc:"Salta abriendo y cerrando piernas y brazos", tiempo:120},
-      {nombre:"Trota en el sitio", desc:"Movimiento suave de piernas y brazos", tiempo:120},
-      {nombre:"Sentadillas", desc:"Baja controlado y sube despacio", tiempo:"reps"},
-      {nombre:"Flexiones rodillas apoyadas", desc:"Apoya rodillas, baja y sube", tiempo:"reps"},
-      {nombre:"Plancha lateral", desc:"Apoyo lateral, cuerpo alineado", tiempo:20},
-      {nombre:"Mountain climbers", desc:"Lleva rodillas al pecho rápido", tiempo:30},
-      {nombre:"Caminar suave", desc:"Paso lento para recuperar", tiempo:120},
-      {nombre:"Estiramientos", desc:"Estira cuello, brazos y piernas", tiempo:180}
+      {nombre:"Jumping jacks", desc:"Salta abriendo y cerrando brazos y piernas.", tiempo:120},
+      {nombre:"Trota en el sitio", desc:"Corre suave en tu lugar.", tiempo:120},
+      {nombre:"Sentadillas", desc:"Baja flexionando rodillas y sube controlado.", tiempo:"reps"},
+      {nombre:"Flexiones rodillas apoyadas", desc:"Apoya rodillas y manos, baja el pecho y sube.", tiempo:"reps"},
+      {nombre:"Plancha lateral", desc:"Apoya un antebrazo y pie, mantén el cuerpo alineado.", tiempo:20},
+      {nombre:"Mountain climbers", desc:"En plancha, lleva rodillas al pecho rápido.", tiempo:30},
+      {nombre:"Caminar suave", desc:"Recupera la respiración caminando.", tiempo:120},
+      {nombre:"Estiramientos", desc:"Estira cuello, brazos y piernas.", tiempo:180}
     ],
     perder: [
-      {nombre:"Jumping jacks", desc:"Saltos con brazos y piernas", tiempo:120},
-      {nombre:"Trota en el sitio", desc:"Movimientos rápidos", tiempo:120},
-      {nombre:"Burpees", desc:"Salto + flexión", tiempo:"reps"},
-      {nombre:"Sentadillas con salto", desc:"Baja y salta explosivo", tiempo:"reps"},
-      {nombre:"Mountain climbers", desc:"Rodillas al pecho rápido", tiempo:30},
-      {nombre:"Plancha", desc:"Mantén core firme", tiempo:20},
-      {nombre:"Caminar suave", desc:"Baja pulsaciones", tiempo:120},
-      {nombre:"Estiramientos", desc:"Estira todo el cuerpo", tiempo:180}
+      {nombre:"Jumping jacks", desc:"Salta abriendo y cerrando brazos y piernas rápido.", tiempo:120},
+      {nombre:"Trota en el sitio", desc:"Corre en tu lugar con ritmo rápido.", tiempo:120},
+      {nombre:"Burpees", desc:"Baja a plancha, haz flexión, salta y repite.", tiempo:"reps"},
+      {nombre:"Sentadillas con salto", desc:"Baja en sentadilla y sube con salto explosivo.", tiempo:"reps"},
+      {nombre:"Mountain climbers", desc:"En plancha, lleva rodillas al pecho rápido.", tiempo:30},
+      {nombre:"Plancha", desc:"Mantén core firme y cuerpo recto.", tiempo:20},
+      {nombre:"Caminar suave", desc:"Camina lento para bajar pulsaciones.", tiempo:120},
+      {nombre:"Estiramientos", desc:"Estira todo el cuerpo.", tiempo:180}
     ]
   },
   intermedio: {
     masa: [
-      {nombre:"Calentamiento dinámico", desc:"Rotaciones articulares y movilidad", tiempo:180},
-      {nombre:"Zancadas", desc:"Alterna piernas bajando rodillas al suelo", tiempo:"reps"},
-      {nombre:"Flexiones normales", desc:"Manos a ancho de hombros, baja y sube", tiempo:"reps"},
-      {nombre:"Fondos en silla", desc:"Baja y sube controlando", tiempo:"reps"},
-      {nombre:"Plancha", desc:"Core firme y espalda recta", tiempo:40},
-      {nombre:"Burpees", desc:"Flexión + salto", tiempo:"reps"},
-      {nombre:"Caminar suave", desc:"Recupera pulsaciones", tiempo:120},
-      {nombre:"Estiramientos", desc:"Brazos, piernas y espalda", tiempo:180}
+      {nombre:"Calentamiento dinámico", desc:"Moviliza articulaciones y activa músculos.", tiempo:180},
+      {nombre:"Zancadas", desc:"Da un paso largo y baja la rodilla trasera al suelo.", tiempo:"reps"},
+      {nombre:"Flexiones normales", desc:"Manos al ancho de hombros, baja y sube el pecho.", tiempo:"reps"},
+      {nombre:"Fondos en silla", desc:"Baja y sube controlando el movimiento.", tiempo:"reps"},
+      {nombre:"Plancha", desc:"Core firme, cuerpo alineado.", tiempo:40},
+      {nombre:"Burpees", desc:"Flexión + salto rápido.", tiempo:"reps"},
+      {nombre:"Caminar suave", desc:"Recupera pulsaciones caminando.", tiempo:120},
+      {nombre:"Estiramientos", desc:"Brazos, piernas y espalda relajados.", tiempo:180}
     ],
     tonificar: [
-      {nombre:"Skipping alto", desc:"Rodillas al pecho rápido", tiempo:60},
-      {nombre:"Sentadillas", desc:"Baja y sube controlado", tiempo:"reps"},
-      {nombre:"Flexiones tríceps", desc:"Codos pegados al cuerpo", tiempo:"reps"},
-      {nombre:"Plancha lateral", desc:"Mantén alineado", tiempo:30},
-      {nombre:"Mountain climbers", desc:"Movimiento rápido", tiempo:40},
-      {nombre:"Saltos laterales", desc:"De un lado a otro", tiempo:30},
-      {nombre:"Caminar suave", desc:"Recupera respiración", tiempo:120},
-      {nombre:"Estiramientos", desc:"Relaja músculos", tiempo:180}
+      {nombre:"Skipping alto", desc:"Rodillas al pecho corriendo en el sitio.", tiempo:60},
+      {nombre:"Sentadillas", desc:"Baja y sube con control.", tiempo:"reps"},
+      {nombre:"Flexiones tríceps", desc:"Codos pegados al cuerpo al bajar.", tiempo:"reps"},
+      {nombre:"Plancha lateral", desc:"Mantén alineación lateral del cuerpo.", tiempo:30},
+      {nombre:"Mountain climbers", desc:"Rápidos y controlados.", tiempo:40},
+      {nombre:"Saltos laterales", desc:"Salta de un lado a otro.", tiempo:30},
+      {nombre:"Caminar suave", desc:"Respira profundo y relaja.", tiempo:120},
+      {nombre:"Estiramientos", desc:"Estiramientos suaves para finalizar.", tiempo:180}
     ],
     perder: [
-      {nombre:"Jumping jacks", desc:"Saltos", tiempo:60},
-      {nombre:"Sprints en el sitio", desc:"Alta intensidad", tiempo:30},
-      {nombre:"Burpees", desc:"Potentes", tiempo:"reps"},
-      {nombre:"Sentadillas con salto", desc:"Explosivas", tiempo:"reps"},
-      {nombre:"Mountain climbers", desc:"Explosivos", tiempo:40},
-      {nombre:"Saltos laterales", desc:"Agilidad", tiempo:30},
-      {nombre:"Caminar suave", desc:"Recupera", tiempo:60},
-      {nombre:"Estiramientos", desc:"Relaja todo", tiempo:180}
+      {nombre:"Jumping jacks", desc:"Salta abriendo y cerrando brazos y piernas.", tiempo:60},
+      {nombre:"Sprints en el sitio", desc:"Corre rápido sin moverte del sitio.", tiempo:30},
+      {nombre:"Burpees", desc:"Potentes, con salto alto.", tiempo:"reps"},
+      {nombre:"Sentadillas con salto", desc:"Baja y sube con salto explosivo.", tiempo:"reps"},
+      {nombre:"Mountain climbers", desc:"Rápidos y seguidos.", tiempo:40},
+      {nombre:"Saltos laterales", desc:"Alterna lados con energía.", tiempo:30},
+      {nombre:"Caminar suave", desc:"Recupera respiración.", tiempo:60},
+      {nombre:"Estiramientos", desc:"Estira y relaja músculos.", tiempo:180}
     ]
   },
   avanzado: {
     masa: [
-      {nombre:"Calentamiento intenso", desc:"Movilidad y activación muscular", tiempo:180},
-      {nombre:"Zancadas con salto", desc:"Explosivas alternando", tiempo:"reps"},
-      {nombre:"Flexiones diamante", desc:"Manos juntas en triángulo", tiempo:"reps"},
-      {nombre:"Burpees con flexión", desc:"Completo", tiempo:"reps"},
-      {nombre:"Plancha con toques de hombro", desc:"Core firme, toca hombros", tiempo:40},
-      {nombre:"Sentadillas pistol asistidas", desc:"Una pierna, con apoyo", tiempo:"reps"},
-      {nombre:"Caminar suave", desc:"Recupera", tiempo:60},
-      {nombre:"Estiramientos", desc:"Relaja todo", tiempo:180}
+      {nombre:"Calentamiento intenso", desc:"Activa músculos con movilidad y saltos suaves.", tiempo:180},
+      {nombre:"Zancadas con salto", desc:"Alterna piernas con salto al cambiar.", tiempo:"reps"},
+      {nombre:"Flexiones diamante", desc:"Manos juntas formando triángulo, baja y sube.", tiempo:"reps"},
+      {nombre:"Burpees con flexión", desc:"Incluye flexión en cada repetición.", tiempo:"reps"},
+      {nombre:"Plancha con toques de hombro", desc:"En plancha, toca hombros alternando manos.", tiempo:40},
+      {nombre:"Sentadillas pistol asistidas", desc:"Baja en una pierna, apóyate si es necesario.", tiempo:"reps"},
+      {nombre:"Caminar suave", desc:"Respira y camina relajado.", tiempo:60},
+      {nombre:"Estiramientos", desc:"Relaja todo el cuerpo.", tiempo:180}
     ],
     tonificar: [
-      {nombre:"Skipping alto", desc:"Rodillas al pecho", tiempo:60},
-      {nombre:"Sentadillas", desc:"Control y fuerza", tiempo:"reps"},
-      {nombre:"Flexiones con palmada", desc:"Explosivas", tiempo:"reps"},
-      {nombre:"Plancha lateral con elevación", desc:"Dificultad extra", tiempo:30},
-      {nombre:"Mountain climbers", desc:"Rápidos", tiempo:40},
-      {nombre:"Saltos laterales", desc:"Agilidad", tiempo:30},
-      {nombre:"Caminar suave", desc:"Recupera", tiempo:60},
-      {nombre:"Estiramientos", desc:"Finaliza relajado", tiempo:180}
+      {nombre:"Skipping alto", desc:"Rodillas al pecho rápido.", tiempo:60},
+      {nombre:"Sentadillas", desc:"Baja y sube con fuerza.", tiempo:"reps"},
+      {nombre:"Flexiones con palmada", desc:"Explosivas, aplaude en el aire.", tiempo:"reps"},
+      {nombre:"Plancha lateral con elevación", desc:"Sube y baja la cadera desde plancha lateral.", tiempo:30},
+      {nombre:"Mountain climbers", desc:"Rápidos y continuos.", tiempo:40},
+      {nombre:"Saltos laterales", desc:"Movimientos ágiles de lado a lado.", tiempo:30},
+      {nombre:"Caminar suave", desc:"Respira profundo y relaja.", tiempo:60},
+      {nombre:"Estiramientos", desc:"Relaja músculos y respira.", tiempo:180}
     ],
     perder: [
-      {nombre:"Jump squats", desc:"Saltos verticales", tiempo:"reps"},
-      {nombre:"Mountain climbers", desc:"Explosivos", tiempo:40},
-      {nombre:"Saltos laterales", desc:"Agilidad", tiempo:30},
-      {nombre:"Plancha", desc:"Mantén firme", tiempo:40},
-      {nombre:"Caminar suave", desc:"Recupera", tiempo:60},
-      {nombre:"Estiramientos", desc:"Finaliza relajado", tiempo:180}
+      {nombre:"Jump squats", desc:"Sentadilla y salto vertical.", tiempo:"reps"},
+      {nombre:"Mountain climbers", desc:"Rápidos y potentes.", tiempo:40},
+      {nombre:"Saltos laterales", desc:"Salta lateralmente rápido.", tiempo:30},
+      {nombre:"Plancha", desc:"Core firme y estable.", tiempo:40},
+      {nombre:"Caminar suave", desc:"Recupera respiración.", tiempo:60},
+      {nombre:"Estiramientos", desc:"Finaliza relajando todo el cuerpo.", tiempo:180}
     ]
   }
 };
